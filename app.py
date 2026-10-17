@@ -24,6 +24,7 @@ COST_TAGS = [
     "CostOfRevenue",
     "CostOfGoodsSold",
     "CostOfGoodsAndServiceExcludingDepreciationDepletionAndAmortization",
+    "OperatingExpenses",
 ]
 
 REVENUE_TAGS = [
