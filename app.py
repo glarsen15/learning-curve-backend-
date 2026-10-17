@@ -140,31 +140,45 @@ def company_data():
     try:
         company = find_company(ticker)
         facts = sec_get(FACTS_URL.format(company["cik"]))
+costs = annual_facts(facts, COST_TAGS)
+revenues = annual_facts(facts, REVENUE_TAGS)
+operating_income = annual_facts(
+    facts, OPERATING_INCOME_TAGS
+)
 
-        costs = annual_facts(facts, COST_TAGS)
-        revenues = annual_facts(facts, REVENUE_TAGS)
+years = []
 
-        years = []
+# Include years for which we have revenue data.
+for period_end in sorted(revenues):
+    revenue = revenues[period_end]
+    cost = costs.get(period_end)
+    op_income = operating_income.get(period_end)
 
-        for period_end in sorted(costs):
-            cost = costs[period_end]
-            revenue = revenues.get(period_end)
+    # Use reported costs when available.
+    # Otherwise, calculate operating expenses from
+    # revenue minus operating income.
+    if cost:
+        cost_value = cost["value"]
+        cost_tag = cost["tag"]
+        filing = cost
+    elif op_income:
+        cost_value = revenue["value"] - op_income["value"]
+        cost_tag = "Calculated: revenue - operating income"
+        filing = revenue
+    else:
+        continue
 
-            years.append({
-                "period": period_end[:4],
-                "period_end": period_end,
-                "cogs_usd": cost["value"],
-                "cogs_tag": cost["tag"],
-                "revenue_usd": (
-                    revenue["value"] if revenue else None
-                ),
-                "revenue_tag": (
-                    revenue["tag"] if revenue else None
-                ),
-                "filing_form": cost["form"],
-                "filing_date": cost["filed"],
-                "accession": cost["accession"],
-            })
+    years.append({
+        "period": period_end[:4],
+        "period_end": period_end,
+        "cogs_usd": cost_value,
+        "cogs_tag": cost_tag,
+        "revenue_usd": revenue["value"],
+        "revenue_tag": revenue["tag"],
+        "filing_form": filing["form"],
+        "filing_date": filing["filed"],
+        "accession": filing["accession"],
+    })
 
         return jsonify({
             "company": company,
